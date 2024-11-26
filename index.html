@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Sound Vision</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
+</head>
+
+<body>
+  <div id="controls">
+    <div class="control-group">
+      <button id="playButton" onclick="togglePlay()" class="play-button" disabled>
+
+        Play
+      </button>
+    </div>
+    <div class="control-group">
+      <button id="recordButton" onclick="toggleRecording()" class="record-button" disabled>
+
+        Start Recording
+      </button>
+    </div>
+    <div class="control-group">
+      <label class="file-input-label">
+        Select Music
+        <input type="file" id="audioInput" accept="audio/mp3,audio/wav,audio/aiff,audio/x-wav,audio/x-aiff"
+          onchange="handleAudioFile(event)" class="file-input">
+      </label>
+      <span id="selectedFileName" class="selected-file-name"></span>
+    </div>
+    <div class="control-group">
+      <label for="bpmInput">BPM</label>
+      <div class="bpm-controls">
+        <input type="number" id="bpmInput" value="120" min="1" max="999" maxlength="3"
+          oninput="this.value=this.value.slice(0,3)">
+        <button class="bpm-button" onclick="updateBPM()">
+          Update
+        </button>
+        <span id="currentBPM">Current BPM: 120</span>
+      </div>
+    </div>
+    <div class="control-group">
+      <label>Colors</label>
+      <div id="colorInputs">
+        <div class="color-input">
+          <input type="color" value="#ff0000" onchange="updateColors()">
+        </div>
+      </div>
+      <div id="colorControls">
+        <button onclick="addColorInput()">
+          <i class="material-icons">add</i>
+        </button>
+        <button onclick="removeColorInput()">
+          <i class="material-icons">remove</i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+
+</html>
