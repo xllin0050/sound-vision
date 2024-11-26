@@ -16,6 +16,8 @@ let colors = [
 let isRecording = false;
 let mediaRecorder;
 let recordedChunks = [];
+let mainCanvas;  // 主畫布
+let recordCanvas; // 錄製畫布
 
 function hexToRgb(hex) {
   let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -99,7 +101,12 @@ function handleAudioFile(event) {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  // 創建固定大小的主畫布和錄製畫布
+  mainCanvas = createCanvas(1920, 1080);
+  mainCanvas.style('width', '100%');  // 使畫布填滿容器
+  mainCanvas.style('height', '100%');
+  recordCanvas = createGraphics(1920, 1080);
+  
   amplitude = new p5.Amplitude();
   colorMode(RGB);
   strokeWeight(2);
@@ -107,7 +114,10 @@ function setup() {
 }
 
 function draw() {
+  // 清除主畫布
   background(0, 25);
+  // 清除錄製畫布
+  recordCanvas.background(0, 25);
 
   if (song && song.isPlaying()) {
     let level = amplitude.getLevel();
@@ -120,47 +130,56 @@ function draw() {
       updateCurvePoints(floor(random(3, 6)));
     }
 
-    // 繪製所有曲線
-    if (curvePoints.length >= 4) {
-      for (let i = 0; i < colors.length; i++) {
-        let color = colors[i];
-        let offset = i * 10; // 每個顏色的偏移量
+    // 在兩個畫布上繪製
+    [
+      { canvas: recordCanvas, scale: 1 },
+      { canvas: recordCanvas, scale: 1 }
+    ].forEach(({canvas, scale}) => {
+      // 繪製曲線
+      if (curvePoints.length >= 4) {
+        for (let i = 0; i < colors.length; i++) {
+          let color = colors[i];
+          let offset = i * 10;
 
-        stroke(color.r, color.g, color.b);
-        beginShape();
-        for (let j = 0; j < curvePoints.length; j++) {
-          let point = curvePoints[j];
-          let x = point.x + offset;
-          let y = point.y + offset;
+          canvas.stroke(color.r, color.g, color.b);
+          canvas.beginShape();
+          for (let j = 0; j < curvePoints.length; j++) {
+            let point = curvePoints[j];
+            let x = point.x + offset;
+            let y = point.y + offset;
 
-          // 根據音量添加抖動效果
-          x += random(-level * 50, level * 50);
-          y += random(-level * 50, level * 50);
+            // 根據音量添加抖動效果
+            x += random(-level * 50, level * 50);
+            y += random(-level * 50, level * 50);
 
-          curveVertex(x, y);
+            canvas.curveVertex(x, y);
+          }
+          canvas.endShape();
         }
-        endShape();
       }
-    }
 
-    // 更新和繪製粒子
-    for (let i = particles.length - 1; i >= 0; i--) {
-      let p = particles[i];
-      p.update();
-      p.display();
-      if (p.isDead()) {
-        particles.splice(i, 1);
+      // 更新和繪製粒子
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.update();
+        p.display(canvas);
+        if (p.isDead()) {
+          particles.splice(i, 1);
+        }
       }
-    }
+    });
 
     // 根據音量添加新粒子
     if (random(1) < level) {
-      let x = random(width);
-      let y = random(height);
+      let x = random(1920);  // 使用固定寬度
+      let y = random(1080);  // 使用固定高度
       let color = random(colors);
       particles.push(new Particle(x, y, color));
     }
   }
+
+  // 將錄製畫布的內容複製到主畫布
+  image(recordCanvas, 0, 0, width, height);
 }
 
 function togglePlay() {
@@ -198,7 +217,7 @@ function toggleRecording() {
     
     // 開始錄製
     recordedChunks = [];
-    const stream = document.querySelector('canvas').captureStream(60); // 60 FPS
+    const stream = recordCanvas.elt.captureStream(60); // 使用錄製畫布而不是主畫布
     mediaRecorder = new MediaRecorder(stream, {
       mimeType: 'video/webm;codecs=vp9',
       videoBitsPerSecond: 5000000 // 5Mbps
@@ -248,8 +267,8 @@ function updateCurvePoints(count) {
   curvePoints = [];
 
   // 添加起始點
-  let x = random(width);
-  let y = random(height);
+  let x = random(1920);  // 使用固定寬度
+  let y = random(1080);  // 使用固定高度
   curvePoints.push({ x, y });
 
   // 生成中間點
@@ -260,8 +279,8 @@ function updateCurvePoints(count) {
     y += sin(angle) * length;
 
     // 確保點在畫布範圍內
-    x = constrain(x, 0, width);
-    y = constrain(y, 0, height);
+    x = constrain(x, 0, 1920);  // 使用固定寬度
+    y = constrain(y, 0, 1080);  // 使用固定高度
 
     curvePoints.push({ x, y });
   }
@@ -284,22 +303,23 @@ class Particle {
   }
 
   update() {
-    this.vel.add(this.acc);
+    this.vel.mult(0.98); // 添加一些阻尼
     this.pos.add(this.vel);
-    this.acc.mult(0);
-    this.life -= 5;
+    this.life -= 2;
   }
 
-  display() {
-    stroke(this.color.r, this.color.g, this.color.b, this.life);
-    point(this.pos.x, this.pos.y);
+  display(canvas) {
+    let size = 8;
+    canvas.noStroke();
+    canvas.fill(this.color.r, this.color.g, this.color.b, this.life);
+    canvas.ellipse(this.pos.x, this.pos.y, size, size);
   }
 
   isDead() {
-    return this.life <= 0;
+    return this.life < 0;
   }
 }
 
 function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+  // 不需要調整畫布大小，因為使用 CSS 縮放
 }
