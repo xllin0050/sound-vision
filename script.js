@@ -219,7 +219,7 @@ function toggleRecording() {
     recordedChunks = [];
     const stream = recordCanvas.elt.captureStream(60); // 使用錄製畫布而不是主畫布
     mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm;codecs=vp9',
+      mimeType: 'video/mp4',
       videoBitsPerSecond: 5000000 // 5Mbps
     });
 
@@ -231,13 +231,13 @@ function toggleRecording() {
 
     mediaRecorder.onstop = () => {
       const blob = new Blob(recordedChunks, {
-        type: 'video/webm'
+        type: 'video/mp4'
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = 'sound-vision-recording.webm';
+      a.download = 'sound-vision-recording.mp4';
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
